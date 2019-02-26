@@ -62,3 +62,4 @@ def MINMAX(jeu, profondeur, joueur,   ALPHA, BETA):
 
 def evaluation(jeu):
     #renvoie la somme des Lambda(i)*F(i)
+    pass
