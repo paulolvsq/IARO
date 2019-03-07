@@ -36,7 +36,7 @@ def init(_boardname=None):
     game = Game('Cartes/' + name + '.json', SpriteBuilder)
     game.O = Ontology(True, 'SpriteSheet-32x32/tiny_spritesheet_ontology.csv')
     game.populate_sprite_names(game.O)
-    game.fps = 3 # frames per second
+    game.fps = 10 # frames per second
     game.mainiteration()
     player = game.player
  
@@ -52,7 +52,7 @@ def astar(initState, goalState, wallStates):
             next_row = posDepart.get("pos")[0]+i[0]
             next_col = posDepart.get("pos")[1]+i[1]
             nouvellePos = (next_row,next_col)
-            if (nouvellePos not in wallStates) and (nouvellePos not in [explored[i][0] for i in range(len(explored))]) and next_row>=0 and next_row<=20 and next_col>=0 and next_col<=20 :
+            if (nouvellePos not in wallStates) and (nouvellePos not in [explored[i][0] for i in range(len(explored))]) and next_row>=0 and next_row<20 and next_col>=0 and next_col<20 :
                 if nouvellePos in goalState:
                     listeCoups = []
                     listeCoups.append(nouvellePos)     
