@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-# Nicolas, 2015-11-18
-
 from __future__ import absolute_import, print_function, unicode_literals
 from gameclass import Game,check_init_game_done
 from spritebuilder import SpriteBuilder
@@ -24,7 +20,57 @@ def posValide(pos,wallStates,mapSize = 20):
     return (pos not in wallStates) and row>=0 and row<mapSize and col>=0 and col<mapSize
         
 
+def calculLongueurs(listeIters):
+    listeLenParcours = [len(l) for l in listeIters]
+    maxLen = max(listeLenParcours)
+    return listeLenParcours,maxLen
+    
+def initPath(posPlayers,players,goalStates,wallStates): 
+    listeIters = []
+    playerGoal = [goalStates[i] for i in range(len(players))]
+    for i in range(len(posPlayers)):
+        listeIters.append(astar([posPlayers[i]],[playerGoal[i]],wallStates))    
+    listeLenParcours,maxLen  = calculLongueurs(listeIters)
+    return { "listeIters" : listeIters, "playerGoal" : playerGoal, "listeLenParcours" : listeLenParcours, "maxLen" : maxLen}
+    
+def detection(posPlayers,j,next_pos):    
+    posAutresJoueurs = []
+    for iter in range(nbPlayers):
+        if iter != j:
+            posAutresJoueurs.append(posPlayers[iter])
+    return next_pos in posAutresJoueurs
 
+def strategieBasique1(numIter,numPlayer,listeIters):
+    pass
+    #strategie à implementer
+
+def strategieCollision(numIter,numPlayer,listeIters):
+    #ici on appelle la stratégie choisie
+    #les strategies renvoient la nouvelle liste de coups du joueur
+    return strategieBasique1(numIter,numPlayer,listeIters)
+                       
+def verification_objet(pos,playerGoal,goalStates,numPlayer,posPlayers,score,accObjets,minPos = 1,maxPos = 19):
+    if (row,col) == playerGoal[numPlayer]:
+        accObjets.append(players[numPlayer].ramasse(game.layers))
+        game.mainiteration()
+        #print ("Objet trouvé par le joueur ", j)
+        goalStates.remove((row,col)) # on enlève ce goalState de la liste
+        score[numPlayer]+=1
+
+        if len(goalStates) == 0:
+            for a in range(nbPlayers):                        
+                x = random.randint(minPos,maxPos)
+                y = random.randint(minPos,maxPos)
+                while (x,y) in wallStates or (x,y) in goalStates or (x,y) in posPlayers:
+                    x = random.randint(minPos,maxPos)
+                    y = random.randint(minPos,maxPos)
+                accObjets[a].set_rowcol(x,y)
+                goalStates.append((x,y)) # on ajoute ce nouveau goalState
+                game.layers['ramassable'].add(accObjets[a])
+                game.mainiteration()  
+            accObjets = []
+        return True
+    return False
 
 def astar(initState, goalState, wallStates):
     if initState == goalState:
@@ -76,22 +122,7 @@ def astar(initState, goalState, wallStates):
             print(tmpTrucTruc, reserve,len(explored),posDepart,initState,goalState)
             sys.exit(1)
     
-def choixSimple(posSuiv,posPlayers,wallStates,numPlayer,goal):
-    coupsLegaux = []
-    posBloquee = []
-    for i in [(0,1),(0,-1),(1,0),(-1,0)]:
-        next_pos = (posSuiv[0]+i[0],posSuiv[1]+i[1])
-        if posValide(next_pos,wallStates):
-            if next_pos in posPlayers:
-                posBloquee.append(next_pos)
-            else:
-                coupsLegaux.append(next_pos)
-    coupsLegauxScore = [abs(i[0] - goal[0]) + abs(i[1] - goal[1]) for i in coupsLegaux]
-    if coupsLegaux == []:
-        return posSuiv
-    return coupsLegaux[coupsLegauxScore.index(min(coupsLegauxScore))]
-
-    
+   
 # ---- ---- ---- ---- ---- ----
 # ---- Main                ----
 # ---- ---- ---- ---- ---- ----
@@ -144,152 +175,67 @@ def main():
     wallStates = [w.get_rowcol() for w in game.layers['obstacle']]
     #print ("Wall states:", wallStates)
     
-    #-------------------------------
-    # Placement aleatoire des fioles 
-    #-------------------------------
-    
-    
-    # on donne a chaque joueur une fiole a ramasser
-    # en essayant de faire correspondre les couleurs pour que ce soit plus simple à suivre
-    
-    
-    #-------------------------------
-    # Boucle principale de déplacements 
-    #-------------------------------
-    
     """
-    #version opportuniste classique demandée sans gestion de collision
+    #version classique sans gestion de collision
     
-    posPlayers = initStates
-    print(posPlayers)
-    listeIters = []
-    for i in range(len(posPlayers)):
-        print(posPlayers[i],goalStates[i])
-        listeIters.append(astar([posPlayers[i]],[goalStates[i]],wallStates))
-    #print(listeIters) 
-    listeLenParcours = [len(l) for l in listeIters]
-    maxLen = max(listeLenParcours)
-    
+    dicoTmp = initPath(initStates,players,goalStates,wallStates)
+    listeIters = dicoTmp["listeIters"]
+    playerGoal = dicoTmp["playerGoal"]
+    listeLenParcours = dicoTmp["listeLenParcours"]  
+    maxLen = dicoTmp["maxLen"]
     for i in range(maxLen):
         for j in range(nbPlayers): # on fait bouger chaque joueur séquentiellement
             if i >= listeLenParcours[j]:
-                continue
-            row,col = listeIters[j][i]    
-            players[j].set_rowcol(row,col)               
+                continue  #si un joueur a fini on le fait pas bouger              
+            row,col = listeIters[j][i]
+            players[j].set_rowcol(row,col) 
+            posPlayers[j] = (row,col)
             game.mainiteration()
-            
-            
+
+
             # si on a  trouvé un objet on le ramasse
-            if (row,col) in goalStates:
-                o = players[j].ramasse(game.layers)
-                game.mainiteration()
-                print ("Objet trouvé par le joueur ", j)
-                goalStates.remove((row,col)) # on enlève ce goalState de la liste
-                score[j]+=1
+            a = verification_objet((row,col),playerGoal,goalStates,j,posPlayers,score,accObjets)
+            if a:
+                break 
                 
-        
-                # et on remet un même objet à un autre endroit
-                x = random.randint(1,19)
-                y = random.randint(1,19)
-                while (x,y) in wallStates:
-                    x = random.randint(1,19)
-                    y = random.randint(1,19)
-                o.set_rowcol(x,y)
-                goalStates.append((x,y)) # on ajoute ce nouveau goalState
-                game.layers['ramassable'].add(o)
-                game.mainiteration()                
-                
-                break  
-    
-    print ("scores:", score)
-    pygame.quit()
+        #print ("scores:", score)
+    pygame.quit()   
     """
-    accObjets = []
     #version infinie et alternative avec gestion de collision
-    
-    posPlayers = initStates  
+    accObjets = []  
     while 1:
-        #print ("Init states:", initStates)
-        #print ("Goal states:", goalStates)
-    
-        #print(posPlayers)
-        listeIters = []
-        playerGoal = [goalStates[i] for i in range(len(players))]
-        for i in range(len(posPlayers)):
-            #print(posPlayers[i],goalStates[i])
-            listeIters.append(astar([posPlayers[i]],[playerGoal[i]],wallStates))
-        #print(listeIters) 
-        listeLenParcours = [len(l) for l in listeIters]
-        maxLen = max(listeLenParcours)
-        flagList = [0]*len(players)
+        
+        dicoTmp = initPath(initStates,players,goalStates,wallStates)
+        listeIters = dicoTmp["listeIters"]
+        playerGoal = dicoTmp["playerGoal"]
+        listeLenParcours = dicoTmp["listeLenParcours"]  
+        maxLen = dicoTmp["maxLen"]
         i = 0
         while i < maxLen:
             #print(i,maxLen,[len(l) for l in listeIters])
             for j in range(nbPlayers): # on fait bouger chaque joueur séquentiellement
-                print(posPlayers)
-                bloqueurFini = False
                 if i >= listeLenParcours[j]:
-                    continue                
+                    continue  #si un joueur a fini on le fait pas bouger              
                 row,col = listeIters[j][i]
-                next_pos = (row, col)
-                posAutresJoueurs = []
-                for iter in range(nbPlayers):
-                    if iter != j:
-                        posAutresJoueurs.append(posPlayers[iter])
-                
+                next_pos = (row, col)                
                 #print(posAutresJoueurs,next_pos)
-                if next_pos in posAutresJoueurs:
-                    print(i,"collision",j,flagList,posPlayers)
-                    if not flagList[j]:                       
-                        trouverBloqueur = [a == next_pos for a in posPlayers] 
-                        print(trouverBloqueur)                            
-                        flagList = [flagList[a] + (int) (trouverBloqueur[a]) for a in range(nbPlayers)]
-                        if listeLenParcours[flagList.index(max(flagList))] < i:
-                            bloqueurFini = True
-                            print("esquive")
-                        else:
-                            listeIters[j] = listeIters[j][:max(i-1,0)] + [listeIters[j][max(i-1,0)]] + listeIters[j][max(i-1,0):]
-                            row,col = listeIters[j][i]
-                    else:
-                        listeIters[j] = listeIters[j][:max(i-1,0)] + [choixSimple(next_pos,posPlayers,wallStates,j,playerGoal[j]), listeIters[j][max(i-1,0)]] + listeIters[j][max(i-1,0):]
-                        print(listeIters[j][i:i+3])
-                        listeLenParcours[j]+= 1
-                        #row,col = choixSimple(posPlayers,wallStates,j,playerGoal[j])
-                    listeLenParcours[j]+= 1 - int(bloqueurFini)
-                    maxLen = max(listeLenParcours)
-                
-                
-                flagList[j] = int(bloqueurFini)
+                if detection(posPlayers,j,next_pos):
+                    listeIters[j] = strategieCollision(i,j,listeIters[j])
+                    listeLenParcours,maxLen  = calculLongueurs(listeIters)
+                    row,col = listeIters[j][i]          
                 players[j].set_rowcol(row,col) 
-                #print ("pos ", j," : ", row,col)
                 posPlayers[j] = (row,col)
                 game.mainiteration()
                 
                 
                 # si on a  trouvé un objet on le ramasse
-                if (row,col) == playerGoal[j]:
-                    accObjets.append(players[j].ramasse(game.layers))
-                    game.mainiteration()
-                    #print ("Objet trouvé par le joueur ", j)
-                    goalStates.remove((row,col)) # on enlève ce goalState de la liste
-                    score[j]+=1
-                    
-                    if len(goalStates) == 0:
-                        for a in range(nbPlayers):                        
-                            x = random.randint(2,7)
-                            y = random.randint(2,7)
-                            while (x,y) in wallStates or (x,y) in goalStates or (x,y) in posPlayers:
-                                x = random.randint(2,7)
-                                y = random.randint(2,7)
-                            accObjets[a].set_rowcol(x,y)
-                            goalStates.append((x,y)) # on ajoute ce nouveau goalState
-                            game.layers['ramassable'].add(accObjets[a])
-                            game.mainiteration()                
-                        
-                        break  
+                a = verification_objet((row,col),playerGoal,goalStates,j,posPlayers,score,accObjets)
+                if a:
+                    break  
             i+=1
         #print ("scores:", score)
     pygame.quit()   
+   
     """
     
     version infinie et alternative
@@ -347,6 +293,9 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+    
     
 
-
+           
+ 
