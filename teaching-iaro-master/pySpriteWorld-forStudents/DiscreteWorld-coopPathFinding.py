@@ -92,6 +92,11 @@ def strategieBasique1(numIter,numPlayer,listeIters):
     pass
     #strategie à implementer
 
+ 
+def PasDeGestion(numIter,numPlayer,listeIters):
+    print("Collision")
+    return listeIters
+    
 def strategieCollision(numIter,numPlayer,listeIters):
     #ici on appelle la stratégie choisie
     #les strategies renvoient la nouvelle liste de coups du joueur
