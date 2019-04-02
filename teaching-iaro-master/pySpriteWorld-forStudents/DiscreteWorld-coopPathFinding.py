@@ -25,7 +25,11 @@ def initPath(initStates,players,goalStates,wallStates):
     """
     Retourne la manière d'initialiser les parcours que l'on a choisie
     """
+<<<<<<< HEAD
     return initPath1(initStates,players,goalStates,wallStates)
+=======
+    return initPath3DBis(initStates,players,goalStates,wallStates)
+>>>>>>> d3bf40b4ec16be48cbfc9c26630bbcafd9b04dce
 
 def initPath1(posPlayers,players,goalStates,wallStates):
     """
@@ -213,7 +217,10 @@ def posValide(pos,wallStates,mapSize = 20):
     Vérifie si la position passée en paramètre fait partie de la liste des murs ou sort de la carte
     Est utilisée pour construire l'a*
     """
+<<<<<<< HEAD
     row,col = pos
+=======
+>>>>>>> d3bf40b4ec16be48cbfc9c26630bbcafd9b04dce
     return (pos in wallStates) and row>=0 and row<mapSize and col>=0 and col<mapSize
 
 def calculLongueurs(listeIters):
@@ -329,6 +336,7 @@ def astar(initState, goalState, wallStates):
                                 a = truc
                                 break
                     listeCoups.append(initState[0]) # Ajout de la position de départ à la liste de positions à atteindre
+<<<<<<< HEAD
                     ltmp = []
                     for ii in range(len(listeCoups),0,-1): # Retournement de la liste de coups (la méthode reverse n'a pas l'effet escompté)
                         ltmp.append(listeCoups[ii-1])
@@ -502,6 +510,190 @@ def astar3DBis(initState, goalState, wallStates,listeChemins,posPlayers):
                         a = listeTemporaire[indiceTemporaire]
                         explored.remove(a)
                     listeCoups.append(initState[0]) # Ajout de la position de départ à la liste de positions à atteindre
+=======
+>>>>>>> d3bf40b4ec16be48cbfc9c26630bbcafd9b04dce
+                    ltmp = []
+                    for ii in range(len(listeCoups),0,-1): # Retournement de la liste de coups (la méthode reverse n'a pas l'effet escompté)
+                        ltmp.append(listeCoups[ii-1])
+                    return ltmp # Retour de la liste de positions à parcourir pour atteindre l'objectif
+
+<<<<<<< HEAD
+=======
+
+>>>>>>> d3bf40b4ec16be48cbfc9c26630bbcafd9b04dce
+                if not (next_row,next_col) in reserve: # Test : la future position est-elle dans les cases dont on connait l'estimation de score?
+                    esti = posDepart.get("score") + abs(next_row - goalState[0][0]) + abs(next_col - goalState[0][1]) # Calcul d'estimation de score
+                    tmp = [nouvellePos,posDepart.get("score")+1,esti,posDepart.get("pos")]
+                    explored.append(tmp) #Ajout de la case à la liste de cases explorées
+                    reserve.append(tmp) #Ajout de la case à la liste de cases de la frontière ( qu'il sera possible d'utiliser pour ouvrir de nouvelles cases)
+        if not nbCasesValides:
+            return []
+        minR = 99999999999999
+        futureCase = None
+        for i in reserve: # Pour chaque case à la frontière entre les cases explorées et non explorées, choix de celle dont l'estimation est
+            if i[2] < minR: # la plus petite pour devenir la future case à explorer et recommencer la boucle avec
+                minR = i[2]
+                posDepart = { "pos" : i[0], "score" : i[1] }
+                futureCase = i
+        try:
+            reserve.remove(futureCase) # S'il est impossible de retirer la case de la réserve, c'est car elle n'y est pas
+        except: # Dans ce cas, on retourne un parcours vide car il est impossible de rejoindre la fin dans ces conditions
+            return []
+
+<<<<<<< HEAD
+
+=======
+def astar3D(initState, goalState, wallStates,listeChemins,posPlayers):
+    """
+    Cette version ajoute à celle au dessus la connaissance des positions des autres joueurs dont on a déjà calculé le chemin.
+    A l'aide de cette information, on peut éviter de générer des collisions en considérant que la case ou se trouve le joueur
+    et celle ou il sera lors de sa prochaine itération ne font pas parties de l'espace autorisé pour se déplacer
+    """
+    if initState == goalState: # Test : Si la case d'arrivée est identique à celle de départ le chemin comporte uniquement cette case
+        return goalState
+
+    posDepart = { "pos" : initState[0], "score": 0} # Stockage de la position de départ (puis de la position précédente) et de sa distance avec le départ (score)
+    """
+    explored est la liste des cases explorées au format :
+    [ (posx,posy) , nombre de cases parcourues , distance de Manhattan jusqu'a l'arrivee , case précédente ]
+    la case précédente est celle qui a ouvert la case actuelle et sert à la construction de la liste de positions
+    """
+    explored = [[posDepart.get("pos"), 0, abs(initState[0][0] - goalState[0][0]) + abs(initState[0][1] - goalState[0][1]), None]]
+    reserve = [] # Liste de cases à explorer dont on connait le score
+    while(True): # Tant qu'aucun chemin n'est trouvé
+        nbCasesValides = 0 # Sert à savoir si le joueur peut se déplacer
+        for i in [(0,1),(0,-1),(1,0),(-1,0)]: # Exploration de toutes les cases adjacentes à la case actuelle
+            next_row = posDepart.get("pos")[0]+i[0]
+            next_col = posDepart.get("pos")[1]+i[1]
+            nouvellePos = (next_row,next_col)
+            wallStatesCopy = wallStates.copy()
+            compteurTemps = posDepart.get("score") +1
+            if compteurTemps == 0:
+                wallStatesCopy += posPlayers
+            for i in range(len(listeChemins)):
+                wallStatesCopy.append(listeChemins[i][min(max(0,compteurTemps-1),len(listeChemins[i])-1)])
+                wallStatesCopy.append(listeChemins[i][min(compteurTemps,len(listeChemins[i])-1)])
+                wallStatesCopy.append(listeChemins[i][min(compteurTemps+1,len(listeChemins[i])-1)])
+            if posValide(nouvellePos,wallStatesCopy):
+                # Si le test n'est passé pour aucune des 4 cases, on est coincé entre 4 murs et on renvoie une liste vide pour l'indiquer
+                nbCasesValides  +=1
+            # Test : la future position est-elle explorable et non encore explorée?
+            if posValide(nouvellePos,wallStatesCopy) and (nouvellePos not in [explored[i][0] for i in range(len(explored))]):
+
+                if nouvellePos in goalState: # Test : la position est-elle la position objectif?
+                    listeCoups = [] # Liste des positions successives à atteindre pour rejoindre l'objectif
+                    listeCoups.append(nouvellePos) # Ajout de la position objectif
+                    for truc in explored:
+                        if truc[0] == posDepart.get("pos"): # Parcours de la liste de cases explorées pour trouver celle qui a ouvert la case actuelle
+                            a = truc # Cette case est a
+                            break
+                    while a[3]: # Tant que a possède un père, ajout de la position de a dans la liste des positions qui se construit à l'envers
+                        listeCoups.append(a[0])
+                        nouvellePos = a[3]
+                        for truc in explored: # Parcours (encore) de la liste de cases explorées pour trouver celle qui a ouvert la case actuelle
+                            if truc[0] == nouvellePos:
+                                a = truc
+                                break
+                    listeCoups.append(initState[0]) # Ajout de la position de départ à la liste de positions à atteindre
+                    ltmp = []
+                    for ii in range(len(listeCoups),0,-1): # Retournement de la liste de coups (la méthode reverse n'a pas l'effet escompté)
+                        ltmp.append(listeCoups[ii-1])
+                    return ltmp # Retour de la liste de positions à parcourir pour atteindre l'objectif
+>>>>>>> d3bf40b4ec16be48cbfc9c26630bbcafd9b04dce
+
+
+                if not (next_row,next_col) in reserve: # Test : la future position est-elle dans les cases dont on connait l'estimation de score?
+                    esti = posDepart.get("score") + abs(next_row - goalState[0][0]) + abs(next_col - goalState[0][1]) # Calcul d'estimation de score
+                    tmp = [nouvellePos,posDepart.get("score")+1,esti,posDepart.get("pos")]
+                    explored.append(tmp) #Ajout de la case à la liste de cases explorées
+                    reserve.append(tmp) #Ajout de la case à la liste de cases de la frontière ( qu'il sera possible d'utiliser pour ouvrir de nouvelles cases)
+        if not nbCasesValides:
+            return []
+        minR = 99999999999999
+        futureCase = None
+        for i in reserve: # Pour chaque case à la frontière entre les cases explorées et non explorées, choix de celle dont l'estimation est
+            if i[2] < minR: # la plus petite pour devenir la future case à explorer et recommencer la boucle avec
+                minR = i[2]
+                posDepart = { "pos" : i[0], "score" : i[1] }
+                futureCase = i
+        try:
+            reserve.remove(futureCase) # S'il est impossible de retirer la case de la réserve, c'est car elle n'y est pas
+        except: # Dans ce cas, on retourne un parcours vide car il est impossible de rejoindre la fin dans ces conditions
+            return []
+
+
+<<<<<<< HEAD
+=======
+def astar3DBis(initState, goalState, wallStates,listeChemins,posPlayers):
+    """
+    Cette version diffère de celle du dessus par la tentative d'ajouter un mouvement supplémentaire autorisé : stationner
+    On peut en effet considérer que si le joueur devant nous va partir de la ou il se trouve, le chemin pour atteindre notre objectif
+    sera bien plus court et donc attendre qu'il s'en aille. Cette version ne fonctionne pas car la manière de constituer la liste
+    des coups à jouer à la fin de la phase de recherche choisie lors de l'ecriture du premier a* n'est pas adaptée pour la gestion
+    de deux itérations consécutives sur la meme case, cette partie de la fonction n'est donc pas opérationnelle
+    """
+    if initState == goalState: # Test : Si la case d'arrivée est identique à celle de départ le chemin comporte uniquement cette case
+        return goalState
+    posDepart = { "pos" : initState[0], "score": 0} # Stockage de la position de départ (puis de la position précédente) et de sa distance avec le départ (score)
+    explored = [[posDepart.get("pos"), 0, abs(initState[0][0] - goalState[0][0]) + abs(initState[0][1] - goalState[0][1]), None]]
+    reserve = [] # Liste de cases à explorer dont on connait le score
+    while(True): # Tant qu'aucun chemin n'est trouvé
+        print(initState,goalState,posDepart)
+        nbCasesValides = 0 # Sert à savoir si le joueur peut se déplacer
+        for i in [(0,1),(0,-1),(1,0),(-1,0)]: # Exploration de toutes les cases adjacentes à la case actuelle
+            next_row = posDepart.get("pos")[0]+i[0]
+            next_col = posDepart.get("pos")[1]+i[1]
+            nouvellePos = (next_row,next_col)
+            wallStatesCopy = wallStates.copy()
+            compteurTemps = posDepart.get("score") +1
+            if compteurTemps == 0:
+                wallStatesCopy += posPlayers
+            for i in range(len(listeChemins)):
+                wallStatesCopy.append(listeChemins[i][min(max(0,compteurTemps-1),len(listeChemins[i])-1)])
+                wallStatesCopy.append(listeChemins[i][min(compteurTemps,len(listeChemins[i])-1)])
+                wallStatesCopy.append(listeChemins[i][min(compteurTemps+1,len(listeChemins[i])-1)])
+            if posValide(nouvellePos,wallStatesCopy):
+                # Si le test n'est passé pour aucune des 4 cases, on est coincé entre 4 murs et on renvoie une liste vide pour l'indiquer
+                nbCasesValides  +=1
+            # Test : la future position est-elle explorable et non encore explorée?
+            if posValide(nouvellePos,wallStates) and not posValide(nouvellePos,wallStatesCopy):
+                esti = posDepart.get("score") + 1 + abs(next_row - goalState[0][0]) + abs(next_col - goalState[0][1]) # Calcul d'estimation de score
+                tmp = [posDepart,posDepart.get("score")+1,esti,posDepart.get("pos")]
+                reserve.append(tmp)
+                explored.append(tmp)
+            if posValide(nouvellePos,wallStatesCopy) and (nouvellePos not in [explored[i][0] for i in range(len(explored))]):
+
+                if nouvellePos in goalState: # Test : la position est-elle la position objectif?
+                    listeCoups = [] # Liste des positions successives à atteindre pour rejoindre l'objectif
+                    listeCoups.append(nouvellePos) # Ajout de la position objectif
+                    listeTemporaire = []
+                    for truc in explored:
+                        if truc[0] == posDepart.get("pos"): # Parcours de la liste de cases explorées pour trouver celle qui a ouvert la case actuelle
+                            listeTemporaire.append(truc)
+                    scoreMax = 0
+                    indiceTemporaire = 0
+                    for t in range(len(listeTemporaire)):
+                        if listeTemporaire[t][1] > scoreMax:
+                            scoreMax =listeTemporaire[t][1]
+                            indiceTemporaire = t
+                    a = listeTemporaire[indiceTemporaire]
+                    explored.remove(a)
+                    while a[3]: # Tant que a possède un père, ajout de la position de a dans la liste des positions qui se construit à l'envers
+                        listeCoups.append(a[0])
+                        nouvellePos = a[3]
+                        listeTemporaire = []
+                        for truc in explored: # Parcours (encore) de la liste de cases explorées pour trouver celle qui a ouvert la case actuelle
+                            if truc[0] == posDepart.get("pos"): # Parcours de la liste de cases explorées pour trouver celle qui a ouvert la case actuelle
+                                listeTemporaire.append(truc)
+                        scoreMax = 0
+                        indiceTemporaire = 0
+                        for t in range(len(listeTemporaire)):
+                            if listeTemporaire[t][1] > scoreMax:
+                                scoreMax =listeTemporaire[t][1]
+                                indiceTemporaire = t
+                        a = listeTemporaire[indiceTemporaire]
+                        explored.remove(a)
+                    listeCoups.append(initState[0]) # Ajout de la position de départ à la liste de positions à atteindre
                     ltmp = []
                     for ii in range(len(listeCoups),0,-1): # Retournement de la liste de coups (la méthode reverse n'a pas l'effet escompté)
                         ltmp.append(listeCoups[ii-1])
@@ -530,6 +722,7 @@ def astar3DBis(initState, goalState, wallStates,listeChemins,posPlayers):
 
 
 
+>>>>>>> d3bf40b4ec16be48cbfc9c26630bbcafd9b04dce
     # ---- ---- ---- ---- ---- ----
     # ---- Main                ----
     # ---- ---- ---- ---- ---- ----
@@ -604,3 +797,12 @@ def main():
 
 if __name__ == '__main__':
     main()
+<<<<<<< HEAD
+=======
+
+
+
+
+
+
+>>>>>>> d3bf40b4ec16be48cbfc9c26630bbcafd9b04dce
